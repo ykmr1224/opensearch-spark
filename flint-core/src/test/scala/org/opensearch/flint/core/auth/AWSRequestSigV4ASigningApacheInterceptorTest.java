@@ -5,8 +5,12 @@
 
 package org.opensearch.flint.core.auth;
 
+import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
+import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.message.BasicHttpEntityEnclosingRequest;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.protocol.HttpContext;
 import org.junit.Before;
@@ -69,6 +73,19 @@ public class AWSRequestSigV4ASigningApacheInterceptorTest {
         SdkHttpFullRequest signedRequest = sdkHttpFullRequestCaptor.getValue();
 
         assertEquals(SdkHttpMethod.GET, signedRequest.method());
+        assertEquals("/path/to/resource", signedRequest.encodedPath());
+    }
+
+    @Test
+    public void testPost() throws Exception {
+        BasicHttpEntityEnclosingRequest request = new BasicHttpEntityEnclosingRequest("POST", "/path/to/resource");
+        request.setEntity(new StringEntity("Test Content"));
+        interceptor.process(request, mockContext);
+
+        verify(mockSigner).sign(sdkHttpFullRequestCaptor.capture(), any());
+        SdkHttpFullRequest signedRequest = sdkHttpFullRequestCaptor.getValue();
+
+        assertEquals(SdkHttpMethod.POST, signedRequest.method());
         assertEquals("/path/to/resource", signedRequest.encodedPath());
     }
 

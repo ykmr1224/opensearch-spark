@@ -12,6 +12,7 @@ import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.commons.text.StringEscapeUtils.unescapeJava
+import org.opensearch.OpenSearchStatusException
 import org.opensearch.flint.core.IRestHighLevelClient
 import org.opensearch.flint.core.logging.{CustomLogging, ExceptionMessages, OperationMessage}
 import org.opensearch.flint.core.metrics.MetricConstants
@@ -25,6 +26,7 @@ import org.apache.spark.sql.flint.config.FlintSparkConf
 import org.apache.spark.sql.flint.config.FlintSparkConf.REFRESH_POLICY
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util._
+
 
 trait FlintJobExecutor {
   this: Logging =>
@@ -122,7 +124,7 @@ trait FlintJobExecutor {
     try {
       resultData.write
         .format("flint")
-        .option(REFRESH_POLICY.optionKey, "wait_for")
+        .option(REFRESH_POLICY.optionKey, "false")
         .mode("append")
         .save(resultIndex)
       IRestHighLevelClient.recordOperationSuccess(
@@ -360,6 +362,11 @@ trait FlintJobExecutor {
       case e: IllegalStateException
           if e.getCause != null &&
             e.getCause.getMessage.contains("index_not_found_exception") =>
+        createResultIndex(osClient, resultIndex, resultIndexMapping)
+      case e: OpenSearchStatusException
+          if e.getCause != null &&
+            e.getCause.getMessage.contains("index_not_found_exception") =>
+        logInfo("captured OpenSearchStatusException")
         createResultIndex(osClient, resultIndex, resultIndexMapping)
       case e: InterruptedException =>
         val error = s"Interrupted by the main thread: ${e.getMessage}"

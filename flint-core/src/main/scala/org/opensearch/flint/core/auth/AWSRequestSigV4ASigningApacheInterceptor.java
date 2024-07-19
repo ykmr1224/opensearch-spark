@@ -8,6 +8,9 @@ package org.opensearch.flint.core.auth;
 import com.amazonaws.auth.AWSSessionCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.glue.model.InvalidStateException;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
@@ -22,6 +25,7 @@ import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.signer.AwsSignerExecutionAttribute;
 import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
 import software.amazon.awssdk.core.signer.Signer;
+import software.amazon.awssdk.http.ContentStreamProvider;
 import software.amazon.awssdk.http.SdkHttpFullRequest;
 import software.amazon.awssdk.http.SdkHttpMethod;
 import software.amazon.awssdk.regions.Region;
@@ -36,10 +40,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import software.amazon.awssdk.utils.StringInputStream;
 
 import static org.apache.http.protocol.HttpCoreContext.HTTP_TARGET_HOST;
 import static org.opensearch.flint.core.auth.AWSRequestSigningApacheInterceptor.nvpToMapParams;
 import static org.opensearch.flint.core.auth.AWSRequestSigningApacheInterceptor.skipHeader;
+import static software.amazon.awssdk.utils.FunctionalUtils.invokeSafely;
 
 /**
  * Interceptor for signing AWS requests according to Signature Version 4A.
@@ -85,6 +91,9 @@ public class AWSRequestSigV4ASigningApacheInterceptor implements HttpRequestInte
         SdkHttpFullRequest signedRequest = signRequest(requestToSign);
         updateRequestHeaders(request, signedRequest.headers());
         updateRequestEntity(request, signedRequest);
+        LOG.severe("signed request: "+ request.toString());
+        LOG.severe("signed request: "+ Arrays.stream(request.getAllHeaders()).map(header -> header.getName() + ":" + header.getValue()).collect(
+            Collectors.joining(", ")));
     }
 
     /**
@@ -114,8 +123,31 @@ public class AWSRequestSigV4ASigningApacheInterceptor implements HttpRequestInte
         } catch (URISyntaxException e) {
             throw new IOException("Invalid URI", e);
         }
+        if (request instanceof HttpEntityEnclosingRequest) {
+            HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+            builder.contentStreamProvider(new RequestContentStreamProvider(entity.getContent()));
+            LOG.info("Set contentStreamProvider");
+        }
         setRequestEntity(request, builder);
         return builder.build();
+    }
+
+    static class RequestContentStreamProvider implements ContentStreamProvider {
+        String input;
+        RequestContentStreamProvider(InputStream inputStream) {
+            try {
+                this.input = IOUtils.toString(inputStream);
+                if (inputStream.markSupported()) {
+                    inputStream.reset();
+                }
+            } catch(IOException e) {
+                throw new RuntimeException("Failed to convert inputStream to string", e);
+            }
+        }
+
+        public InputStream newStream() {
+            return new StringInputStream(this.input);
+        }
     }
 
     /**

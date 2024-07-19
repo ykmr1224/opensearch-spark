@@ -5,6 +5,8 @@
 
 package org.opensearch.flint.core.storage;
 
+import java.util.function.Supplier;
+import java.util.logging.Logger;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
@@ -20,10 +22,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
- * OpenSearch Bulk writer. More reading https://opensearch.org/docs/1.2/opensearch/rest-api/document-apis/bulk/.
- * It is not thread safe.
+ * OpenSearch Bulk writer. More reading
+ * https://opensearch.org/docs/1.2/opensearch/rest-api/document-apis/bulk/. It is not thread safe.
  */
 public class OpenSearchWriter extends FlintWriter {
+
+  private static final Logger LOG = Logger.getLogger(OpenSearchWriter.class.getName());
 
   private final String indexName;
 
@@ -41,7 +45,8 @@ public class OpenSearchWriter extends FlintWriter {
     this.baos = new ByteArrayOutputStream(bufferSizeInBytes);
   }
 
-  @Override public void write(char[] cbuf, int off, int len) {
+  @Override
+  public void write(char[] cbuf, int off, int len) {
     byte[] bytes = new String(cbuf, off, len).getBytes(StandardCharsets.UTF_8);
     baos.write(bytes, 0, bytes.length);
   }
@@ -50,28 +55,60 @@ public class OpenSearchWriter extends FlintWriter {
    * Flush the data in buffer.
    * Todo. StringWriter is not efficient. it will copy the cbuf when create bytes.
    */
-  @Override public void flush() {
+  @Override
+  public void flush() {
     try {
       if (baos.size() > 0) {
         byte[] bytes = baos.toByteArray();
-        BulkResponse
-            response =
-            client.bulk(
-                new BulkRequest(indexName).setRefreshPolicy(refreshPolicy).add(bytes, 0, bytes.length, XContentType.JSON),
+        BulkResponse response = withRetry(() -> {
+          try {
+            return client.bulk(
+                new BulkRequest(indexName).setRefreshPolicy(refreshPolicy)
+                    .add(bytes, 0, bytes.length, XContentType.JSON),
                 RequestOptions.DEFAULT);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }, 3);
         // fail entire bulk request even one doc failed.
-        if (response.hasFailures() && Arrays.stream(response.getItems()).anyMatch(itemResp -> !isCreateConflict(itemResp))) {
+        if (response.hasFailures() && Arrays.stream(response.getItems())
+            .anyMatch(itemResp -> !isCreateConflict(itemResp))) {
           throw new RuntimeException(response.buildFailureMessage());
         }
       }
-    } catch (IOException e) {
-      throw new RuntimeException(String.format("Failed to execute bulk request on index: %s", indexName), e);
     } finally {
       baos.reset();
     }
   }
 
-  @Override public void close() {
+  private static BulkResponse withRetry(Supplier<BulkResponse> fn, int maxRetry) {
+    for (int retryCount = 0; retryCount <= maxRetry; retryCount++) {
+      try {
+        BulkResponse response = fn.get();
+        if (response.hasFailures()) {
+          throw new RuntimeException("hasFailures");
+        }
+        return response;
+      } catch (Exception e) {
+        if (retryCount < maxRetry) {
+          final long backoff = 2000 * (long) Math.pow(2, retryCount);
+          LOG.info("Failed " + retryCount + "th try. backoff=" + backoff);
+          try {
+            Thread.sleep(backoff);
+          } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+          }
+        } else {
+          LOG.info("Failed " + retryCount + "th try. No more retry.");
+          throw e;
+        }
+      }
+    }
+    throw new RuntimeException("Somehow failed.");
+  }
+
+  @Override
+  public void close() {
     try {
       if (client != null) {
         client.close();
@@ -87,7 +124,8 @@ public class OpenSearchWriter extends FlintWriter {
   }
 
   private boolean isCreateConflict(BulkItemResponse itemResp) {
-    return itemResp.getOpType() == DocWriteRequest.OpType.CREATE && (itemResp.getFailure() == null || itemResp.getFailure()
+    return itemResp.getOpType() == DocWriteRequest.OpType.CREATE && (itemResp.getFailure() == null
+        || itemResp.getFailure()
         .getStatus() == RestStatus.CONFLICT);
   }
 }

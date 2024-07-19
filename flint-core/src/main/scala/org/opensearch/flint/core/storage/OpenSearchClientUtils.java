@@ -9,6 +9,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import java.lang.reflect.Constructor;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -22,6 +23,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.flint.core.FlintOptions;
 import org.opensearch.flint.core.IRestHighLevelClient;
 import org.opensearch.flint.core.RestHighLevelClientWrapper;
+import org.opensearch.flint.core.auth.AWSRequestSigV4ASigningApacheInterceptor;
 import org.opensearch.flint.core.auth.ResourceBasedAWSRequestSigningApacheInterceptor;
 import org.opensearch.flint.core.http.RetryableHttpAsyncClient;
 
@@ -29,13 +31,14 @@ import org.opensearch.flint.core.http.RetryableHttpAsyncClient;
  * Utility functions to create {@link IRestHighLevelClient}.
  */
 public class OpenSearchClientUtils {
+  private static final Logger LOG = Logger.getLogger(OpenSearchClientUtils.class.getName());
 
-  private static final String SERVICE_NAME = "es";
+  private static final String SERVICE_NAME = "aoss";
 
   /**
    * Metadata log index name prefix
    */
-  public final static String META_LOG_NAME_PREFIX = ".query_execution_request";
+  public final static String META_LOG_NAME_PREFIX = "query_execution_request";
 
   /**
    * Used in IT.

@@ -71,11 +71,12 @@ public class DefaultOptimisticTransaction<T> implements OptimisticTransaction<T>
         metadataLog.getLatest().orElseGet(() -> metadataLog.add(metadataLog.emptyLogEntry()));
 
     // Perform initial log check
-    if (!initialCondition.test(latest)) {
-      LOG.warning("Initial log entry doesn't satisfy precondition " + latest);
-      throw new IllegalStateException(
-          String.format("Index state [%s] doesn't satisfy precondition", latest.state()));
-    }
+    // TODO: This is to avoid failure because WAIT_FOR is not available in AOSS
+//    if (!initialCondition.test(latest)) {
+//      LOG.warning("Initial log entry doesn't satisfy precondition " + latest);
+//      throw new IllegalStateException(
+//          String.format("Index state [%s] doesn't satisfy precondition", latest.state()));
+//    }
 
     // Append optional transient log
     FlintMetadataLogEntry initialLog = latest;
@@ -90,6 +91,14 @@ public class DefaultOptimisticTransaction<T> implements OptimisticTransaction<T>
           latest.entryVersion(),
           initialLog.error(),
           initialLog.properties());
+    }
+    // TODO: to be deleted
+    try { // sleep enough time for index to be reflected
+      LOG.info("Sleeping for 5 sec");
+      Thread.sleep(5000);
+      LOG.info("Slept for 5 sec");
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
 
     // Perform operation

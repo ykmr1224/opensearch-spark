@@ -5,6 +5,7 @@
 
 package org.opensearch.flint.core.auth;
 
+import static com.amazonaws.auth.internal.SignerConstants.X_AMZ_CONTENT_SHA256;
 import static org.apache.http.protocol.HttpCoreContext.HTTP_TARGET_HOST;
 
 import com.amazonaws.DefaultRequest;
@@ -20,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.apache.http.Header;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
@@ -31,6 +34,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HttpContext;
+import software.amazon.awssdk.http.ContentStreamProvider;
+import software.amazon.awssdk.utils.StringInputStream;
 
 /**
  * From https://github.com/opensearch-project/sql-jdbc/blob/main/src/main/java/org/opensearch/jdbc/transport/http/auth/aws/AWSRequestSigningApacheInterceptor.java
@@ -38,6 +43,8 @@ import org.apache.http.protocol.HttpContext;
  * and {@link AWSCredentialsProvider}.
  */
 public class AWSRequestSigningApacheInterceptor implements HttpRequestInterceptor {
+  private static final Logger LOG = Logger.getLogger(AWSRequestSigningApacheInterceptor.class.getName());
+
   /**
    * The service that we're connecting to. Technically not necessary.
    * Could be used by a future Signer, though.
@@ -109,9 +116,16 @@ public class AWSRequestSigningApacheInterceptor implements HttpRequestIntercepto
     }
     signableRequest.setParameters(nvpToMapParams(uriBuilder.getQueryParams()));
     signableRequest.setHeaders(headerArrayToMap(request.getAllHeaders()));
+    signableRequest.addHeader(X_AMZ_CONTENT_SHA256, "required");
 
     // Sign it
     signer.sign(signableRequest, awsCredentialsProvider.getCredentials());
+
+    LOG.severe("signed request: "+ signableRequest);
+    LOG.severe("signed request: "+ signableRequest.getHeaders().entrySet()
+        .stream()
+        .map((entry) -> entry.getKey() + ":" + entry.getValue())
+        .collect(Collectors.joining(", ")));
 
     // Now copy everything back
     request.setHeaders(mapToHeaderArray(signableRequest.getHeaders()));
