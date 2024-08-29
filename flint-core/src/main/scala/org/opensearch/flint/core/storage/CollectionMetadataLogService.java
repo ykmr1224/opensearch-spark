@@ -24,9 +24,9 @@ import org.opensearch.flint.core.metadata.log.DefaultOptimisticTransaction;
 /**
  * Flint metadata log service implementation for OpenSearch storage.
  */
-public class FlintOpenSearchMetadataLogService implements FlintMetadataLogService {
+public class CollectionMetadataLogService implements FlintMetadataLogService {
 
-  private static final Logger LOG = Logger.getLogger(FlintOpenSearchMetadataLogService.class.getName());
+  private static final Logger LOG = Logger.getLogger(CollectionMetadataLogService.class.getName());
 
   public final static String METADATA_LOG_INDEX_NAME_PREFIX = "query_execution_request";
 
@@ -34,7 +34,7 @@ public class FlintOpenSearchMetadataLogService implements FlintMetadataLogServic
   private final String dataSourceName;
   private final String metadataLogIndexName;
 
-  public FlintOpenSearchMetadataLogService(FlintOptions options) {
+  public CollectionMetadataLogService(FlintOptions options) {
     this.options = options;
     this.dataSourceName = options.getDataSourceName();
     this.metadataLogIndexName = constructMetadataLogIndexName();

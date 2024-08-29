@@ -18,6 +18,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.log4j.Logger;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
@@ -32,11 +33,12 @@ import org.opensearch.flint.core.http.RetryableHttpAsyncClient;
  * Utility functions to create {@link IRestHighLevelClient}.
  */
 public class OpenSearchClientUtils {
+  private static final Logger logger = Logger.getLogger(OpenSearchClientUtils.class);
 
   /**
    * Metadata log index name prefix
    */
-  public final static String META_LOG_NAME_PREFIX = ".query_execution_request";
+  public final static String META_LOG_NAME_PREFIX = "query_execution_request";
 
   /**
    * Invalid index name characters to percent-encode,
@@ -68,6 +70,7 @@ public class OpenSearchClientUtils {
   }
 
   public static IRestHighLevelClient createClient(FlintOptions options) {
+    logger.info(options.getScheme() + ", " + options.getHost() + ", " + options.getPort());
     return new RestHighLevelClientWrapper(createRestHighLevelClient(options),
         BulkRequestRateLimiterHolder.getBulkRequestRateLimiter(options),
         new OpenSearchBulkRetryWrapper(options.getRetryOptions()));

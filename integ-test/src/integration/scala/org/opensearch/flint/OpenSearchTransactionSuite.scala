@@ -6,9 +6,7 @@
 package org.opensearch.flint
 
 import java.util.Collections
-
 import scala.collection.JavaConverters.mapAsScalaMapConverter
-
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest
 import org.opensearch.action.get.GetRequest
 import org.opensearch.action.index.IndexRequest
@@ -18,11 +16,11 @@ import org.opensearch.client.indices.{CreateIndexRequest, GetIndexRequest}
 import org.opensearch.common.xcontent.XContentType
 import org.opensearch.flint.common.metadata.log.FlintMetadataLogEntry
 import org.opensearch.flint.common.metadata.log.FlintMetadataLogEntry.IndexState.IndexState
-import org.opensearch.flint.core.storage.FlintMetadataLogEntryOpenSearchConverter.{toJson, QUERY_EXECUTION_REQUEST_MAPPING, QUERY_EXECUTION_REQUEST_SETTINGS}
+import org.opensearch.flint.core.storage.FlintMetadataLogEntryOpenSearchConverter.{QUERY_EXECUTION_REQUEST_MAPPING, QUERY_EXECUTION_REQUEST_SETTINGS, toJson}
 import org.opensearch.flint.core.storage.FlintOpenSearchMetadataLogService.METADATA_LOG_INDEX_NAME_PREFIX
 import org.opensearch.flint.spark.FlintSparkSuite
-
 import org.apache.spark.sql.flint.config.FlintSparkConf.DATA_SOURCE_NAME
+import org.opensearch.common.unit.TimeValue
 
 /**
  * Transaction test base suite that creates the metadata log index which enables transaction
@@ -83,7 +81,7 @@ trait OpenSearchTransactionSuite extends FlintSparkSuite {
         .exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT)) {
       openSearchClient
         .indices()
-        .delete(new DeleteIndexRequest(indexName), RequestOptions.DEFAULT)
+        .delete(new DeleteIndexRequest(indexName).clusterManagerNodeTimeout(null.asInstanceOf[TimeValue]).timeout(null.asInstanceOf[TimeValue]), RequestOptions.DEFAULT)
     }
   }
 

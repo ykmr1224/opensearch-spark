@@ -51,6 +51,7 @@ trait FlintSparkTransactionSupport { self: Logging =>
 
       val result = opBlock(tx)
       logInfo(s"Index operation [$opName $indexName] complete")
+      Thread.sleep(10000)
       result
     } catch {
       case e: Exception =>

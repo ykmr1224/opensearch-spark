@@ -6,27 +6,24 @@
 package org.apache.spark.sql
 
 import java.util.UUID
-
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, MINUTES}
 import scala.util.{Failure, Success, Try}
 import scala.util.control.Breaks.{break, breakable}
-
 import org.opensearch.OpenSearchStatusException
-import org.opensearch.flint.OpenSearchSuite
+import org.opensearch.flint.{OpenSearchServerlessSuite, OpenSearchSuite}
 import org.opensearch.flint.common.model.{FlintStatement, InteractiveSession}
 import org.opensearch.flint.core.{FlintClient, FlintOptions}
 import org.opensearch.flint.core.storage.{FlintOpenSearchClient, FlintReader, OpenSearchUpdater}
 import org.opensearch.search.sort.SortOrder
-
 import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.FlintREPLConfConstants.DEFAULT_QUERY_LOOP_EXECUTION_FREQUENCY
 import org.apache.spark.sql.flint.config.FlintSparkConf.{DATA_SOURCE_NAME, EXCLUDE_JOB_IDS, HOST_ENDPOINT, HOST_PORT, JOB_TYPE, REFRESH_POLICY, REPL_INACTIVITY_TIMEOUT_MILLIS, REQUEST_INDEX, SESSION_ID}
 import org.apache.spark.sql.util.MockEnvironment
 import org.apache.spark.util.ThreadUtils
 
-class FlintREPLITSuite extends SparkFunSuite with OpenSearchSuite with JobTest {
+class FlintREPLITSuite extends SparkFunSuite with OpenSearchServerlessSuite with JobTest {
 
   var flintClient: FlintClient = _
   var osClient: OSClient = _

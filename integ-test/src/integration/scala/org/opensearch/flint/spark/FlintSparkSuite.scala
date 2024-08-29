@@ -8,28 +8,26 @@ package org.opensearch.flint.spark
 import java.nio.file.{Files, Paths}
 import java.util.Comparator
 import java.util.concurrent.{ScheduledExecutorService, ScheduledFuture}
-
 import scala.concurrent.duration.TimeUnit
 import scala.util.Try
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.mockito.invocation.InvocationOnMock
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest
 import org.opensearch.client.RequestOptions
 import org.opensearch.client.indices.GetIndexRequest
-import org.opensearch.flint.OpenSearchSuite
+import org.opensearch.flint.{OpenSearchServerlessSuite, OpenSearchSuite}
 import org.scalatestplus.mockito.MockitoSugar.mock
-
 import org.apache.spark.{FlintSuite, SparkConf}
 import org.apache.spark.sql.QueryTest
-import org.apache.spark.sql.flint.config.FlintSparkConf.{CHECKPOINT_MANDATORY, HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY}
+import org.apache.spark.sql.flint.config.FlintSparkConf.{AUTH, CHECKPOINT_MANDATORY, HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY, REGION, SCHEME, SERVICE_NAME}
 import org.apache.spark.sql.streaming.StreamTest
+import org.opensearch.common.unit.TimeValue
 
 /**
  * Flint Spark suite trait that initializes [[FlintSpark]] API instance.
  */
-trait FlintSparkSuite extends QueryTest with FlintSuite with OpenSearchSuite with StreamTest {
+trait FlintSparkSuite extends QueryTest with FlintSuite with OpenSearchServerlessSuite with StreamTest {
 
   /** Flint Spark high level API being tested */
   lazy protected val flint: FlintSpark = new FlintSpark(spark)
@@ -38,11 +36,16 @@ trait FlintSparkSuite extends QueryTest with FlintSuite with OpenSearchSuite wit
 
   override protected def sparkConf: SparkConf = {
     val conf = super.sparkConf
+      .set(SCHEME.key, openSearchScheme)
       .set(HOST_ENDPOINT.key, openSearchHost)
       .set(HOST_PORT.key, openSearchPort.toString)
-      .set(REFRESH_POLICY.key, "true")
+      .set(REFRESH_POLICY.key, "false")
       // Disable mandatory checkpoint for test convenience
       .set(CHECKPOINT_MANDATORY.key, "false")
+      // Disable mandatory checkpoint for test convenience
+      .set(AUTH.key, "sigv4")
+      .set(SERVICE_NAME.key, "aoss")
+      .set(REGION.key, "us-west-2")
     conf
   }
 
@@ -76,7 +79,8 @@ trait FlintSparkSuite extends QueryTest with FlintSuite with OpenSearchSuite wit
               .exists(new GetIndexRequest(testIndex), RequestOptions.DEFAULT)) {
             openSearchClient
               .indices()
-              .delete(new DeleteIndexRequest(testIndex), RequestOptions.DEFAULT)
+//              .delete(new DeleteIndexRequest(testIndex), RequestOptions.DEFAULT)
+              .delete(new DeleteIndexRequest(testIndex).clusterManagerNodeTimeout(null.asInstanceOf[String]).timeout(null.asInstanceOf[TimeValue]), RequestOptions.DEFAULT)
           }
       }
     })

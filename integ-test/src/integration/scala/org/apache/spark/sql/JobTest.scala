@@ -8,12 +8,10 @@ package org.apache.spark.sql
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success}
 import scala.util.control.Breaks._
-
 import org.opensearch.OpenSearchStatusException
-import org.opensearch.flint.OpenSearchSuite
+import org.opensearch.flint.OpenSearchServerlessSuite
 import org.opensearch.flint.core.FlintOptions
 import org.opensearch.search.sort.SortOrder
-
 import org.apache.spark.internal.Logging
 
 /**
@@ -21,7 +19,7 @@ import org.apache.spark.internal.Logging
  * a class that also mixes in OpenSearchSuite. This way, JobTest can still use the
  * openSearchOptions field,
  */
-trait JobTest extends Logging { self: OpenSearchSuite =>
+trait JobTest extends Logging { self: OpenSearchServerlessSuite =>
 
   def pollForResultAndAssert(
       osClient: OSClient,

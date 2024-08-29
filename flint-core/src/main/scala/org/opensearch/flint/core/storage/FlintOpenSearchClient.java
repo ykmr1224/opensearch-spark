@@ -5,10 +5,14 @@
 
 package org.opensearch.flint.core.storage;
 
+import java.util.Collections;
+import org.apache.http.client.config.RequestConfig;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.opensearch.client.HttpAsyncResponseConsumerFactory.HeapBufferedResponseConsumerFactory;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.indices.CreateIndexRequest;
 import org.opensearch.client.indices.GetIndexRequest;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.flint.common.metadata.FlintMetadata;
 import org.opensearch.flint.core.FlintClient;
@@ -69,7 +73,7 @@ public class FlintOpenSearchClient implements FlintClient {
     LOG.info("Deleting Flint index " + indexName);
     String osIndexName = sanitizeIndexName(indexName);
     try (IRestHighLevelClient client = createClient()) {
-      DeleteIndexRequest request = new DeleteIndexRequest(osIndexName);
+      DeleteIndexRequest request = new DeleteIndexRequest(osIndexName).clusterManagerNodeTimeout((TimeValue) null).timeout((TimeValue) null);
       client.deleteIndex(request, RequestOptions.DEFAULT);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to delete Flint index " + osIndexName, e);
