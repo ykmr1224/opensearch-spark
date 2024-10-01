@@ -83,7 +83,8 @@ lazy val flintCore = (project in file("flint-core"))
         // Found jackson-databind version 2.14.
         exclude ("com.fasterxml.jackson.core", "jackson-databind")
         exclude ("com.fasterxml.jackson.core", "jackson-core")
-        exclude ("org.apache.httpcomponents.client5", "httpclient5"),
+        exclude ("org.apache.httpcomponents.client5", "httpclient5")
+        exclude ("org.apache.httpcomponents.core5", "httpcore5"),
       "org.opensearch" % "opensearch-job-scheduler-spi" % opensearchMavenVersion,
       "dev.failsafe" % "failsafe" % "3.3.2",
       "com.amazonaws" % "aws-java-sdk" % "1.12.397" % "provided"
