@@ -103,9 +103,18 @@ public final class MetricConstants {
     public static final String STREAMING_FAILED_METRIC = "streaming.failed.count";
 
     /**
+     * Metric for tracking the processing time of batch job.
+     */
+    public static final String BATCH_PROCESSING_TIME_METRIC = "batch.processingTime";
+
+    /**
      * Metric for tracking the count of streaming jobs that have completed successfully.
      */
     public static final String STREAMING_SUCCESS_METRIC = "streaming.success.count";
+
+    public static final String STREAMING_REFRESH_SUCCESS_METRIC = "streaming.refresh.success.count";
+    public static final String STREAMING_REFRESH_FAILED_METRIC = "streaming.refresh.failed.count";
+    public static final String STREAMING_REFRESH_PROCESSING_TIME_METRIC = "streaming.refresh.processingTime";
 
     /**
      * Metric for tracking the count of failed heartbeat signals in streaming jobs.

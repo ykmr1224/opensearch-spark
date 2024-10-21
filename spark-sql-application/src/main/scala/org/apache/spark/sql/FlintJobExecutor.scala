@@ -6,6 +6,7 @@
 package org.apache.spark.sql
 
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.amazonaws.services.glue.model.{AccessDeniedException, AWSGlueException}
 import com.amazonaws.services.s3.model.AmazonS3Exception
@@ -15,12 +16,13 @@ import org.apache.commons.text.StringEscapeUtils.unescapeJava
 import org.opensearch.common.Strings
 import org.opensearch.flint.core.IRestHighLevelClient
 import org.opensearch.flint.core.logging.{CustomLogging, ExceptionMessages, OperationMessage}
-import org.opensearch.flint.core.metrics.MetricConstants
+import org.opensearch.flint.core.metrics.{MetricConstants, MetricsUtil}
 import org.opensearch.flint.core.metrics.MetricsUtil.incrementCounter
 import play.api.libs.json._
 
 import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.internal.Logging
+import org.apache.spark.scheduler.{SparkListener, SparkListenerTaskEnd}
 import org.apache.spark.sql.SparkConfConstants.{DEFAULT_SQL_EXTENSIONS, SQL_EXTENSIONS_KEY}
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.flint.config.FlintSparkConf
@@ -420,6 +422,8 @@ trait FlintJobExecutor {
     val startTime = System.currentTimeMillis()
     // we have to set job group in the same thread that started the query according to spark doc
     spark.sparkContext.setJobGroup(queryId, "Job group for " + queryId, interruptOnCancel = true)
+    spark.sparkContext.addSparkListener(new ReadWriteBytesSparkListener(queryId))
+
     val result: DataFrame = spark.sql(query)
     // Get Data
     getFormattedData(

@@ -146,24 +146,29 @@ public class DimensionedCloudWatchReporter extends ScheduledReporter {
                     gauges.size() + counters.size() + 10 * histograms.size() + 10 * timers.size());
 
             for (final Map.Entry<String, Gauge> gaugeEntry : gauges.entrySet()) {
+                LOGGER.info("gaugeEntry: " + gaugeEntry.getKey() + "=" + gaugeEntry.getValue());
                 processGauge(gaugeEntry.getKey(), gaugeEntry.getValue(), metricData);
             }
 
             for (final Map.Entry<String, Counter> counterEntry : counters.entrySet()) {
+                LOGGER.info("counterEntry: " + counterEntry.getKey() + "=" + counterEntry.getValue());
                 processCounter(counterEntry.getKey(), counterEntry.getValue(), metricData);
             }
 
             for (final Map.Entry<String, Histogram> histogramEntry : histograms.entrySet()) {
+                LOGGER.info("histogramEntry: " + histogramEntry.getKey() + "=" + histogramEntry.getValue());
                 processCounter(histogramEntry.getKey(), histogramEntry.getValue(), metricData);
                 processHistogram(histogramEntry.getKey(), histogramEntry.getValue(), metricData);
             }
 
             for (final Map.Entry<String, Meter> meterEntry : meters.entrySet()) {
+                LOGGER.info("meterEntry: " + meterEntry.getKey() + "=" + meterEntry.getValue());
                 processCounter(meterEntry.getKey(), meterEntry.getValue(), metricData);
                 processMeter(meterEntry.getKey(), meterEntry.getValue(), metricData);
             }
 
             for (final Map.Entry<String, Timer> timerEntry : timers.entrySet()) {
+                LOGGER.info("timerEntry: " + timerEntry.getKey() + "=" + timerEntry.getValue());
                 processCounter(timerEntry.getKey(), timerEntry.getValue(), metricData);
                 processMeter(timerEntry.getKey(), timerEntry.getValue(), metricData);
                 processTimer(timerEntry.getKey(), timerEntry.getValue(), metricData);
@@ -351,6 +356,7 @@ public class DimensionedCloudWatchReporter extends ScheduledReporter {
 
             MetricInfo metricInfo = getMetricInfo(dimensionedName, dimensions);
             for (Set<Dimension> dimensionSet : metricInfo.getDimensionSets()) {
+                LOGGER.info("stageMetricDatum metricName=" + metricInfo.getMetricName() + ", metricValue=" + metricValue + ", standardUnit=" + standardUnit);
                 MetricDatum datum = new MetricDatum()
                         .withTimestamp(new Date(builder.clock.getTime()))
                         .withValue(cleanMetricValue(metricValue))

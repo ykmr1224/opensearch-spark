@@ -77,6 +77,10 @@ public final class MetricsUtil {
         return context != null ? context.stop() : null;
     }
 
+    public static Timer getTimer(String metricName) {
+        return getOrCreateTimer(metricName);
+    }
+
     /**
      * Registers a gauge metric with the provided name and value.
      * The gauge will reflect the current value of the AtomicInteger provided.
@@ -106,7 +110,7 @@ public final class MetricsUtil {
     }
 
     // Retrieves the MetricRegistry from the current Spark environment.
-    private static MetricRegistry getMetricRegistry() {
+    public static MetricRegistry getMetricRegistry() { // TODO: change back to private
         SparkEnv sparkEnv = SparkEnv.get();
         if (sparkEnv == null) {
             LOG.warning("Spark environment not available, cannot access MetricRegistry.");

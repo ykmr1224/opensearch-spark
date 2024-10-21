@@ -5,7 +5,7 @@
 
 package org.apache.spark.sql
 
-import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.{ThreadPoolExecutor, TimeUnit}
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.concurrent.{ExecutionContext, Future, TimeoutException}
@@ -14,13 +14,14 @@ import scala.util.{Failure, Success, Try}
 
 import org.opensearch.flint.common.model.FlintStatement
 import org.opensearch.flint.common.scheduler.model.LangType
-import org.opensearch.flint.core.metrics.MetricConstants
-import org.opensearch.flint.core.metrics.MetricsUtil.incrementCounter
+import org.opensearch.flint.core.metrics.{MetricConstants, MetricsUtil}
+import org.opensearch.flint.core.metrics.MetricsUtil.{incrementCounter, registerGauge}
 import org.opensearch.flint.spark.FlintSpark
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.FlintREPL.PreShutdownListener
 import org.apache.spark.sql.flint.config.FlintSparkConf
-import org.apache.spark.sql.util.ShuffleCleaner
+import org.apache.spark.sql.util.{MetricsStreamingListener, ShuffleCleaner}
 import org.apache.spark.util.ThreadUtils
 
 case class JobOperator(
@@ -51,6 +52,8 @@ case class JobOperator(
     // osClient needs spark session to be created first to get FlintOptions initialized.
     // Otherwise, we will have connection exception from EMR-S to OS.
     val osClient = new OSClient(FlintSparkConf().flintOptions())
+
+    sparkSession.streams.addListener(new MetricsStreamingListener())
 
     // TODO: Update FlintJob to Support All Query Types. Track on https://github.com/opensearch-project/opensearch-spark/issues/633
     val commandContext = CommandContext(
@@ -148,11 +151,14 @@ case class JobOperator(
       statement.error = Some(error)
       statementExecutionManager.updateStatement(statement)
 
-      cleanUpResources(exceptionThrown, threadPool)
+      cleanUpResources(exceptionThrown, threadPool, startTime)
     }
   }
 
-  def cleanUpResources(exceptionThrown: Boolean, threadPool: ThreadPoolExecutor): Unit = {
+  def cleanUpResources(
+      exceptionThrown: Boolean,
+      threadPool: ThreadPoolExecutor,
+      startTime: Long): Unit = {
     val isStreaming = jobType.equalsIgnoreCase(FlintJobType.STREAMING)
     try {
       // Wait for streaming job complete if no error
@@ -181,6 +187,13 @@ case class JobOperator(
       case e: Exception => logError("Fail to close threadpool", e)
     }
     recordStreamingCompletionStatus(exceptionThrown)
+    if (jobType.equalsIgnoreCase(FlintJobType.BATCH)) {
+      val latency = System.currentTimeMillis() - startTime;
+      logInfo(s"batch processing time: $latency")
+      MetricsUtil
+        .getTimer(MetricConstants.BATCH_PROCESSING_TIME_METRIC)
+        .update(latency, TimeUnit.MILLISECONDS)
+    }
 
     // Check for non-daemon threads that may prevent the driver from shutting down.
     // Non-daemon threads other than the main thread indicate that the driver is still processing tasks,

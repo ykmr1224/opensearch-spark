@@ -6,10 +6,13 @@
 package org.apache.spark.sql
 
 import org.opensearch.flint.common.model.FlintStatement
+import org.opensearch.flint.core.metrics.MetricsUtil
 import org.opensearch.flint.core.storage.OpenSearchUpdater
 import org.opensearch.search.sort.SortOrder
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd, SparkListenerJobStart, SparkListenerTaskEnd}
+import org.apache.spark.sql.util.ReadWriteBytesSparkListener
 
 /**
  * StatementExecutionManagerImpl is session based implementation of StatementExecutionManager
@@ -60,6 +63,7 @@ class StatementExecutionManagerImpl(commandContext: CommandContext)
       statement.queryId,
       "Job group for " + statement.queryId,
       interruptOnCancel = true)
+    spark.sparkContext.addSparkListener(new ReadWriteBytesSparkListener(statement.queryId))
     spark.sql(statement.query)
   }
 

@@ -11,6 +11,7 @@ object Dependencies {
       "org.json4s" %% "json4s-native" % "3.7.0-M5",
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided" withSources (),
       "org.apache.spark" %% "spark-sql" % sparkVersion % "provided" withSources (),
+      "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided" withSources (),
       "org.json4s" %% "json4s-native" % "3.7.0-M5" % "test",
       "org.apache.spark" %% "spark-hive" % sparkVersion % "test",
       "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
