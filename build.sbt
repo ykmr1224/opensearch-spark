@@ -53,7 +53,9 @@ lazy val commonSettings = Seq(
   compileScalastyle := (Compile / scalastyle).toTask("").value,
   Compile / compile := ((Compile / compile) dependsOn compileScalastyle).value,
   testScalastyle := (Test / scalastyle).toTask("").value,
+  Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports"),
   Test / test := ((Test / test) dependsOn testScalastyle).value,
+  libraryDependencies += "com.vladsch.flexmark" % "flexmark-all" % "0.64.8",
   dependencyOverrides ++= Seq(
     "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
