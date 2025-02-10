@@ -5,11 +5,15 @@
 
 package org.opensearch.flint.spark.ppl
 
+import java.net.InetAddress
+
 import org.opensearch.flint.spark.{FlintPPLSparkExtensions, FlintSparkExtensions, FlintSparkSuite}
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, QueryTest, Row}
 import org.apache.spark.sql.flint.config.FlintSparkConf.OPTIMIZER_RULE_ENABLED
+import org.apache.spark.sql.types.UDTRegistration
+
 
 trait FlintPPLSuite extends FlintSparkSuite {
   override protected def sparkConf: SparkConf = {

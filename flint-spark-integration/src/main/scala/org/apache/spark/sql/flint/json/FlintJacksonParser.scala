@@ -7,17 +7,14 @@ package org.apache.spark.sql.flint.json
 
 import java.io.{ByteArrayOutputStream, CharConversionException}
 import java.nio.charset.MalformedInputException
-
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
-
 import com.fasterxml.jackson.core._
-
 import org.apache.spark.SparkUpgradeException
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.{InternalRow, NoopFilters, StructFilters}
 import org.apache.spark.sql.catalyst.expressions.{Cast, EmptyRow, ExprUtils, GenericInternalRow, Literal}
-import org.apache.spark.sql.catalyst.json.{JacksonUtils, JsonFilters, JSONOptions}
+import org.apache.spark.sql.catalyst.json.{JSONOptions, JacksonUtils, JsonFilters}
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, BadRecordException, DateFormatter, DateTimeUtils, GenericArrayData, IntervalUtils, MapData, PartialResultException, RebaseDateTime, TimestampFormatter}
 import org.apache.spark.sql.catalyst.util.LegacyDateFormats.FAST_DATE_FORMAT
 import org.apache.spark.sql.errors.QueryExecutionErrors
@@ -27,6 +24,7 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.{CalendarInterval, UTF8String}
 import org.apache.spark.util.Utils
+import org.opensearch.flint.spark.udt.{IPAddress, IPAddressUDT}
 
 /**
  * Constructs a parser for a given schema that translates a json string to an [[InternalRow]].
@@ -351,6 +349,12 @@ class FlintJacksonParser(
         parseJsonToken[java.lang.Long](parser, dataType) { case VALUE_STRING =>
           val expr = Cast(Literal(parser.getText), dt)
           java.lang.Long.valueOf(expr.eval(EmptyRow).asInstanceOf[Long])
+        }
+
+    case ip: IPAddressUDT =>
+      (parser: JsonParser) =>
+        parseJsonToken[InternalRow](parser, dataType) {
+          case VALUE_STRING => IPAddressUDT.serialize(IPAddress(parser.getText))
         }
 
     case st: StructType =>
