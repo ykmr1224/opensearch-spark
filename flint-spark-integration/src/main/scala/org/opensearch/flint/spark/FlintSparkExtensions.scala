@@ -25,5 +25,9 @@ class FlintSparkExtensions extends (SparkSessionExtensions => Unit) {
     extensions.injectOptimizerRule { spark =>
       new FlintSparkOptimizer(spark)
     }
+
+    extensions.injectResolutionRule({ spark =>
+      CustomTypeCoercionRule(spark)
+    })
   }
 }
