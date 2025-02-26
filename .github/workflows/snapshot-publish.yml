@@ -53,7 +53,7 @@ jobs:
         run: |
           cd build/resources/publish/
           cp -a $HOME/.m2/repository/* ./
-          ls -R
+          find ./ -type f -name "*SNAPSHOT.jar" -exec cp {}  \;
 
       - name: Upload jar files as artifacts
         uses: actions/upload-artifact@v4
