@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - 0.*
+      - upload-jar-files
 
 jobs:
   build-and-publish-snapshots:
@@ -64,3 +65,9 @@ jobs:
           cd build/resources/publish/
           cp -a $HOME/.m2/repository/* ./
           ./publish-snapshot.sh ./
+
+      - name: Upload jar files as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar-files
+          path: build/resources/publish/*.jar
