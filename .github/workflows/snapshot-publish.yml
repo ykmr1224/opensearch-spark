@@ -12,7 +12,7 @@ jobs:
   build-and-publish-snapshots:
     strategy:
       fail-fast: false
-    if: github.repository == 'opensearch-project/opensearch-spark'
+#    if: github.repository == 'opensearch-project/opensearch-spark'
     runs-on: ubuntu-latest
 
     permissions:
@@ -42,11 +42,11 @@ jobs:
           repository: 'opensearch-project/opensearch-build-libraries'
           path: 'build'
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1.7.0
-        with:
-          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
-          aws-region: us-east-1
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v1.7.0
+#        with:
+#          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
+#          aws-region: us-east-1
 
       - name: generate sha and md5
         run: |
@@ -57,14 +57,14 @@ jobs:
 
       - name: Get credentials and publish snapshots to maven
         run: |
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          export SNAPSHOT_REPO_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/"
+#          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+#          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+#          echo "::add-mask::$SONATYPE_USERNAME"
+#          echo "::add-mask::$SONATYPE_PASSWORD"
+#          export SNAPSHOT_REPO_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/"
           cd build/resources/publish/
           cp -a $HOME/.m2/repository/* ./
-          ./publish-snapshot.sh ./
+#          ./publish-snapshot.sh ./
 
       - name: Upload jar files as artifacts
         uses: actions/upload-artifact@v4
