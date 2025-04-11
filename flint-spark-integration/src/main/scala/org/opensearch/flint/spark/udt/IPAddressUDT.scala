@@ -14,17 +14,27 @@ import org.apache.spark.unsafe.types.UTF8String
 class IPAddressUDT extends UserDefinedType[IPAddress] {
 
   // Use StructType to avoid implicit equality check with String type
-  override def sqlType: DataType = StructType(
-    Seq(StructField("address", StringType, nullable = false)))
+  //  override def sqlType: DataType = StructType(
+  //    Seq(StructField("address", StringType, nullable = false)))
+  override def sqlType: DataType = StringType
 
-  override def serialize(obj: IPAddress): InternalRow = {
-    val row = new GenericInternalRow(Array[Any](UTF8String.fromString(obj.address)))
-    row
+  //  override def serialize(obj: IPAddress): InternalRow = {
+  //    val row = new GenericInternalRow(Array[Any](UTF8String.fromString(obj.address)))
+  //    row
+  //  }
+
+  override def serialize(obj: IPAddress): UTF8String = {
+    UTF8String.fromString(obj.address)
   }
+
+//  override def deserialize(datum: Any): IPAddress = datum match {
+//    case row: InternalRow => IPAddress(row.getString(0))
+//  }
 
   override def deserialize(datum: Any): IPAddress = datum match {
-    case row: InternalRow => IPAddress(row.getString(0))
+    case data: UTF8String => IPAddress(data.toString)
   }
+
   override def userClass: Class[IPAddress] = classOf[IPAddress]
 
   override def typeName: String = "ipaddress"

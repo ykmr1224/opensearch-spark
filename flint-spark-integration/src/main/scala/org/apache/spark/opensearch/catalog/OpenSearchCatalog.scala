@@ -7,11 +7,12 @@ package org.apache.spark.opensearch.catalog
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.opensearch.catalog.OpenSearchCatalog.OPENSEARCH_PREFIX
-import org.apache.spark.sql.catalyst.analysis.{NoSuchNamespaceException, NoSuchTableException}
+import org.apache.spark.sql.catalyst.analysis.{NoSuchFunctionException, NoSuchNamespaceException, NoSuchTableException}
 import org.apache.spark.sql.connector.catalog._
+import org.apache.spark.sql.connector.catalog.functions.{BoundFunction, ScalarFunction, UnboundFunction}
 import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.flint.FlintReadOnlyTable
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{BooleanType, DataType, DataTypes, StringType, StructType}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 /**
@@ -27,7 +28,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
  * <li><code>opensearch.region</code>: Default is us-west-2. Only used when auth is sigv4.</li>
  * </ul>
  */
-class OpenSearchCatalog extends CatalogPlugin with TableCatalog with Logging {
+class OpenSearchCatalog extends CatalogPlugin with TableCatalog with FunctionCatalog with Logging {
 
   private var catalogName: String = _
   private var options: CaseInsensitiveStringMap = _
@@ -89,6 +90,34 @@ class OpenSearchCatalog extends CatalogPlugin with TableCatalog with Logging {
       }
     }
     result
+  }
+
+  override def listFunctions(namespace: Array[String]): Array[Identifier] = {
+    throw new UnsupportedOperationException("OpenSearchCatalog does not support listFunctions")
+  }
+
+  case object IpMatchUnbound extends UnboundFunction {
+    override def name(): String = "ip_match"
+
+    override def bind(inputType: StructType): BoundFunction = IpMatchBound
+
+    override def description(): String = "ip_match function"
+  }
+
+  case object IpMatchBound extends ScalarFunction[Boolean] {
+    override def inputTypes(): Array[DataType] = Array(DataTypes.StringType, DataTypes.StringType)
+
+    override def resultType(): DataType = DataTypes.BooleanType
+
+    override def name(): String = "ip_match"
+  }
+
+  override def loadFunction(ident: Identifier): UnboundFunction = {
+     ident.name() match {
+      case "ip_match" => IpMatchUnbound
+      case _ =>
+        throw new NoSuchFunctionException(ident.namespace().mkString("."), ident.name())
+    }
   }
 }
 

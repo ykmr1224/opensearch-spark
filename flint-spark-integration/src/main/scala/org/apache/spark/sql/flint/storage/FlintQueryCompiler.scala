@@ -6,11 +6,10 @@
 package org.apache.spark.sql.flint.storage
 
 import scala.io.Source
-
 import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, TimestampFormatter}
 import org.apache.spark.sql.connector.catalog.CatalogV2Implicits.parseColumnPath
-import org.apache.spark.sql.connector.expressions.{Expression, FieldReference, LiteralValue}
+import org.apache.spark.sql.connector.expressions.{Expression, FieldReference, LiteralValue, UserDefinedScalarFunc}
 import org.apache.spark.sql.connector.expressions.filter.{And, Predicate}
 import org.apache.spark.sql.flint.datatype.FlintDataType.STRICT_DATE_OPTIONAL_TIME_FORMATTER_WITH_NANOS
 import org.apache.spark.sql.flint.datatype.FlintMetadataExtensions.MetadataExtension
@@ -55,6 +54,10 @@ case class FlintQueryCompiler(schema: StructType) {
         Some(quote(extract, quoteString)(value, dataType))
       case p: Predicate => visitPredicate(p)
       case f: FieldReference => Some(f.toString())
+//      case s: UserDefinedScalarFunc if s.name() == "ip_match" =>
+//        val field = s.children()(0).asInstanceOf[FieldReference].toString()
+//        val value = s.children()(1).asInstanceOf[LiteralValue[StringType]].value.toString
+//        Some(s"""{"term": {"$field": "$value"}}""")
       case _ => None
     }
   }
@@ -108,20 +111,27 @@ case class FlintQueryCompiler(schema: StructType) {
         s"""{"bool":{"must_not":$child}}"""
       }
     case "=" =>
-      for {
-        field <- compileOpt(p.children()(0))
-        value <- compileOpt(p.children()(1))
-        result <-
-          if (isTextField(field)) {
-            getKeywordSubfield(field) match {
-              case Some(keywordField) =>
-                Some(s"""{"term":{"$keywordField":{"value":$value}}}""")
-              case None => None // Return None for unsupported text fields
-            }
-          } else {
-            Some(s"""{"term":{"$field":{"value":$value}}}""")
-          }
-      } yield result
+      p.children()(0) match {
+        case udf: UserDefinedScalarFunc if udf.name() == "ip_match" =>
+          val field = udf.children()(0).asInstanceOf[FieldReference].toString()
+          val value = udf.children()(1).asInstanceOf[LiteralValue[StringType]].value.toString
+          Some(s"""{"term": {"$field": "$value"}}""")
+        case _ =>
+          for {
+            field <- compileOpt(p.children()(0))
+            value <- compileOpt(p.children()(1))
+            result <-
+              if (isTextField(field)) {
+                getKeywordSubfield(field) match {
+                  case Some(keywordField) =>
+                    Some(s"""{"term":{"$keywordField":{"value":$value}}}""")
+                  case None => None // Return None for unsupported text fields
+                }
+              } else {
+                Some(s"""{"term":{"$field":{"value":$value}}}""")
+              }
+          } yield result
+      }
     case ">" =>
       for {
         field <- compileOpt(p.children()(0))

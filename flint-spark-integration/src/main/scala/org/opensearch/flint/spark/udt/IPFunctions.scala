@@ -6,6 +6,7 @@
 package org.opensearch.flint.spark.udt
 
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.expressions.Expression
 
 /**
  * UDFs related to IPAddress UDT
