@@ -46,7 +46,10 @@ object IPFunctions {
     parsedCidrBlock.contains(parsedIpAddress)
   }
 
+  val myUdfTest = (num: Int) => num % 2 == 0
+
   def registerFunctions(spark: SparkSession): Unit = {
     spark.udf.register("cidrmatch", cidrMatch)
+    spark.udf.register("myUdfTest", myUdfTest)
   }
 }

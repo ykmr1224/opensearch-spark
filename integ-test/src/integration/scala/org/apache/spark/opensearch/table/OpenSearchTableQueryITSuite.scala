@@ -223,4 +223,20 @@ class OpenSearchTableQueryITSuite
         "((ip_compare(client, '192.168.0.10/32')) = 0) OR ((ip_compare(client, '192.168.1.11/32')) = 0)")
     }
   }
+
+  test("my udf test") {
+    val index1 = "t0001"
+    val tableName = s"""$catalogName.default.$index1"""
+    val spark = SparkSession.builder().getOrCreate()
+    IPFunctions.registerFunctions(spark)
+
+    withIndexName(index1) {
+      indexWithIp(index1)
+
+      var df: DataFrame = null
+
+      df = spark.sql(s"SELECT id FROM $tableName WHERE myUdfTest(id)")
+      checkAnswer(df, Seq(Row(0), Row(2)))
+    }
+  }
 }
